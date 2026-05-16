@@ -339,7 +339,8 @@ async function loadExpenses() {
     const data = await res.json();
     expenses = (data.expenses || []).map(e => ({
       ...e,
-      amt: parseFloat(e.amt) || 0
+      amt: parseFloat(e.amt) || 0,
+      payer: (e.payer === 'Akshay' || e.payer === 'a') ? 'a' : 'b'
     }));
     renderTracker();
     renderAnalytics();
