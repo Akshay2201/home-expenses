@@ -77,6 +77,13 @@
   .field { margin-bottom: 10px; }
   .field-row { display: flex; gap: 8px; }
 
+  input[type=date] {
+    width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; font-size: 15px; font-family: 'DM Sans', sans-serif;
+    color: var(--text); outline: none; -webkit-appearance: none; appearance: none;
+    cursor: pointer;
+  }
+  input[type=date]:focus { border-color: var(--accent); }
   input[type=number], input[type=text], select {
     width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px;
     padding: 12px 14px; font-size: 15px; font-family: 'DM Sans', sans-serif;
@@ -224,21 +231,30 @@
         <select id="category">
           <option value="">Category…</option>
           <option value="Grocery">🛒 Grocery</option>
+          <option value="Eating Out">🍽 Eating Out</option>
+          <option value="Order In">🛵 Order In</option>
+          <option value="Alcohol">🍷 Alcohol</option>
           <option value="Commute">🚗 Commute</option>
           <option value="Shopping">🛍 Shopping</option>
-          <option value="Eating Out">🍽 Eating Out</option>
           <option value="Rent">🏠 Rent</option>
           <option value="Househelp">🧹 Househelp</option>
           <option value="Utilities">💡 Utilities</option>
-          <option value="Vacation">✈️ Vacation</option>
           <option value="Household">🔧 Household</option>
           <option value="Entertainment">🎬 Entertainment</option>
+          <option value="Vacation">✈️ Vacation</option>
+          <option value="Trip">🗺 Trip</option>
+          <option value="Tiggi">🐾 Tiggi</option>
+          <option value="Health & Wellness">🏥 Health & Wellness</option>
+          <option value="Personal Care">💆 Personal Care</option>
           <option value="Others">📦 Others</option>
         </select>
       </div>
     </div>
     <div class="field">
       <input type="text" id="desc" placeholder="Description (optional)" autocomplete="off">
+    </div>
+    <div class="field">
+      <input type="date" id="expense-date">
     </div>
     <div class="payer-row">
       <button class="payer-btn active-a" id="btn-a" onclick="setPayer('a')">Akshay paid</button>
@@ -294,8 +310,10 @@
 const SCRIPT_URL_KEY = 'gas-script-url-v1';
 const CAT_COLORS = {
   'Grocery':'#16a34a','Commute':'#2563eb','Shopping':'#9333ea',
-  'Eating Out':'#ea580c','Rent':'#dc2626','Househelp':'#0891b2',
-  'Utilities':'#ca8a04','Vacation':'#db2777','Household':'#65a30d','Entertainment':'#d97706','Others':'#78716c'
+  'Eating Out':'#ea580c','Order In':'#f97316','Rent':'#dc2626','Househelp':'#0891b2',
+  'Utilities':'#ca8a04','Vacation':'#db2777','Trip':'#0d9488','Household':'#65a30d',
+  'Entertainment':'#d97706','Alcohol':'#7c3aed','Tiggi':'#ec4899',
+  'Health & Wellness':'#0284c7','Personal Care':'#be185d','Others':'#78716c'
 };
 
 let expenses = [];
@@ -304,8 +322,18 @@ let scriptUrl = '';
 let currentPage = 'tracker';
 let selectedMonth = '';
 
+// ── DATE HELPER
+function setTodayDate() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  document.getElementById('expense-date').value = yyyy+'-'+mm+'-'+dd;
+}
+
 // ── INIT
 window.onload = function() {
+  setTodayDate();
   scriptUrl = localStorage.getItem(SCRIPT_URL_KEY) || '';
   if (scriptUrl) {
     document.getElementById('setup-banner').style.display = 'none';
@@ -355,24 +383,31 @@ async function addExpense() {
   const amt = parseFloat(document.getElementById('amt').value);
   const cat = document.getElementById('category').value;
   const desc = document.getElementById('desc').value.trim();
+  const dateVal = document.getElementById('expense-date').value; // yyyy-mm-dd
   let valid = true;
   if (!amt || amt <= 0) { shake('amt'); valid = false; }
   if (!cat) { shake('category'); valid = false; }
   if (!valid) return;
   if (!scriptUrl) { showToast('Set up Google Sheet URL first'); return; }
 
+  // Format date as '16 May 2026' for display & sheet
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const d = dateVal ? new Date(dateVal + 'T00:00:00') : new Date();
+  const formattedDate = d.getDate().toString().padStart(2,'0') + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+
   setLoading(true);
   try {
     const res = await fetch(scriptUrl, {
       method: 'POST',
-      body: JSON.stringify({ action: 'add', amt, cat, desc, payer })
+      body: JSON.stringify({ action: 'add', amt, cat, desc, payer, date: formattedDate })
     });
     const data = await res.json();
     if (data.success) {
-      expenses.unshift({ id: data.id, date: data.date, desc, cat, amt, payer });
+      expenses.unshift({ id: data.id, date: formattedDate, desc, cat, amt, payer });
       document.getElementById('amt').value = '';
       document.getElementById('category').value = '';
       document.getElementById('desc').value = '';
+      setTodayDate();
       setPayer('a');
       renderTracker();
       renderAnalytics();
