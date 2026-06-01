@@ -202,7 +202,7 @@
 
   <div class="summary">
     <div class="card wide">
-      <div class="card-label">Total Spent</div>
+      <div class="card-label" id="lbl-total">Total Spent</div>
       <div class="card-value val-total" id="total">₹0</div>
     </div>
     <div class="card">
@@ -459,9 +459,16 @@ async function clearAll() {
 
 // ── RENDER: TRACKER
 function renderTracker() {
-  const total = expenses.reduce((s,e)=>s+e.amt,0);
-  const paidA = expenses.filter(e=>e.payer==='a').reduce((s,e)=>s+e.amt,0);
-  const paidB = expenses.filter(e=>e.payer==='b').reduce((s,e)=>s+e.amt,0);
+  // Filter to current month only for summary cards
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+  const curMonthKey = MONTHS[now.getMonth()] + ' ' + now.getFullYear();
+  document.getElementById('lbl-total').textContent = MONTHS[now.getMonth()] + ' Spend';
+  const thisMonth = expenses.filter(e => getMonthKey(e.date) === curMonthKey);
+
+  const total = thisMonth.reduce((s,e)=>s+e.amt,0);
+  const paidA = thisMonth.filter(e=>e.payer==='a').reduce((s,e)=>s+e.amt,0);
+  const paidB = thisMonth.filter(e=>e.payer==='b').reduce((s,e)=>s+e.amt,0);
   const share = total/2;
   const aOwes = share - paidA;
 
